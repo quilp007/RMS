@@ -9,7 +9,6 @@ from PyQt5 import uic, QtTest, QtGui, QtCore
 
 import numpy as np
 import shelve
-from keysight_34461a import keysight_34461a
 
 x_size = 200
 
@@ -18,6 +17,8 @@ form_class = uic.loadUiType('RMS.ui')[0]
 # --------------------------------------------------------------
 # [THREAD] RECEIVE from PLC (receive from PLC)
 # --------------------------------------------------------------
+
+
 class THREAD_RECEIVE_Data(QThread):
     intReady = pyqtSignal(float)
 
@@ -28,6 +29,11 @@ class THREAD_RECEIVE_Data(QThread):
 
     def run(self):
         while True:
+            # msg = sock.recv_string()
+            # msg = self._hexStr2int(msg)
+            # print(msg)
+            # self.intReady.emit(msg)
+
             read = self.ks_34461a.run()
             self.intReady.emit(read)
 
@@ -46,6 +52,13 @@ class qt(QMainWindow, form_class):
         self.btn_alarm.clicked.connect(lambda: self.main_button_function(self.btn_alarm))
         self.btn_alarm_list.clicked.connect(lambda: self.main_button_function(self.btn_alarm_list))
         self.btn_logon.clicked.connect(lambda: self.main_button_function(self.btn_logon))
+
+        # y = [4, 7, 9,10]
+
+        # self.graphWidget.addLegend(size=(140, 40)) ## 범례
+        # self.graphWidget.plot(y, title='Plot test', name='Legend name', pen='r', symbol='o', symbolPen='g', symbolBrush=0.2)
+        # self.graphWidget.showGrid(x=True, y=True) #그리드 표현
+        # self.graphWidget.setTitle(title='Title name')
 
         self.data = np.linspace(-np.pi, np.pi, x_size)
         self.y1 = np.zeros(len(self.data))
@@ -110,6 +123,51 @@ class qt(QMainWindow, form_class):
             self.p6.enableAutoRange('xy', False)  ## stop auto-scaling after the first data set is plotted
         self.ptr += 1
 
+    @pyqtSlot()
+    def update_func_1(self):
+        msg = sock.recv_string()
+        msg = _hexStr2int(msg)
+
+        if self.first_flag == 1:
+            self.y1 = np.full(len(self.data), msg)
+            self.first_flag = 0
+
+        # self.curve.setData(self.data[self.ptr % 10])
+        self.y1 = np.roll(self.y1, -1)
+
+        # self.y1[-1] = np.random.normal(0, 0.1, 1) # N(0, 1^2)
+
+        self.y1[-1] = msg
+
+        self.curve.setData(self.y1)
+
+        mean_value = 24 + np.mean(self.y1)*100
+        mean_value = np.round(mean_value, 1)
+        # self.lcdNum_T_PV_CH1.display("{:.1f}".format(mean_value))
+        self.lcdNum_T_PV_CH1.display("{:.1f}".format(msg))
+
+        # print('y1: ', mean_value)
+        # if self.ptr == 0:
+        #     self.p6.enableAutoRange('xy', False)  ## stop auto-scaling after the first data set is plotted
+        self.ptr += 1
+
+    def update_func(self):
+        # self.curve.setData(self.data[self.ptr % 10])
+        self.y1 = np.roll(self.y1, -1)
+
+        self.y1[-1] = np.random.normal(0, 0.1, 1) # N(0, 1^2)
+
+        self.curve.setData(self.y1)
+
+        mean_value = 24 + np.mean(self.y1)*100
+        mean_value = np.round(mean_value, 1)
+        self.lcdNum_T_PV_CH1.display("{:.1f}".format(mean_value))
+
+        # print('y1: ', mean_value)
+        # if self.ptr == 0:
+        #     self.p6.enableAutoRange('xy', False)  ## stop auto-scaling after the first data set is plotted
+        self.ptr += 1
+
     def plot(self):
         # self.g_plotWidget.plot(hour, temperature)
         # curve = self.graphWidget_2.plot(pen='y')
@@ -132,6 +190,7 @@ class qt(QMainWindow, form_class):
         self.btn_parameter.setStyleSheet("background-color: #dedede; border: 0px")
         self.btn_alarm.setStyleSheet("background-color: #dedede; border: 0px")
         self.btn_alarm_list.setStyleSheet("background-color: #dedede; border: 0px")
+
 
         if button == self.btn_main:
             self.stackedWidget.setCurrentWidget(self.sw_MAIN)
@@ -160,6 +219,8 @@ def run():
 
     sys.exit(app.exec_())
 
+
+from keysight_34461a import keysight_34461a
 
 if __name__ == "__main__":
     run()
