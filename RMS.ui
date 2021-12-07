@@ -320,7 +320,7 @@
        <enum>QFrame::Box</enum>
       </property>
       <property name="text">
-       <string>EP-308</string>
+       <string>KEYSIGHT 34461A</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
@@ -337,6 +337,45 @@
         <width>621</width>
         <height>471</height>
        </rect>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="btn_start">
+      <property name="geometry">
+       <rect>
+        <x>770</x>
+        <y>270</y>
+        <width>141</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>START</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="btn_stop">
+      <property name="geometry">
+       <rect>
+        <x>770</x>
+        <y>330</y>
+        <width>141</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>STOP</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="btn_close">
+      <property name="geometry">
+       <rect>
+        <x>770</x>
+        <y>390</y>
+        <width>141</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>CLOSE</string>
       </property>
      </widget>
     </widget>

@@ -1,11 +1,8 @@
-import sys
-
 import pyvisa as visa
 import time
 from datetime import datetime
 
 # start of untitled
-
 
 class keysight_34461a:
     def __init__(self, param):
@@ -24,6 +21,26 @@ class keysight_34461a:
         self.time_format = '%Y%m%d_%H%M%S'
 
         self.work = True
+
+    def stop(self):
+        self.work = False
+
+    def start(self):
+        self.work = True
+
+    def close(self):
+        self.stop()
+        time.sleep(1)
+        self.v34461A.write(':DISPlay:STATe %d' % True)
+        self.v34461A.close()
+        self.rm.close()
+        self.rm.visalib._registry.clear()
+
+    def read(self):
+        temp_values = self.v34461A.query_ascii_values(':READ?')
+        read = temp_values[0]
+        # print(read)
+        return read
 
     def run(self):
         while self.work:
