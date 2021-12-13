@@ -12,6 +12,7 @@ import shelve
 from keysight_34461a import keysight_34461a
 from datetime import datetime
 import pandas as pd
+import pyqtgraph as pg
 
 import time
 import serial
@@ -149,7 +150,7 @@ class qt(QMainWindow, form_class):
 
         # Updating Plot
         self.p6 = self.graphWidget.addPlot(title="Res")
-        self.curve = self.p6.plot(pen='y')
+        self.curve = self.p6.plot(pen='g')
         self.p6.setGeometry(0, 0, x_size, 5)
 
         self.p6.setYRange(PLOT_UPPER, PLOT_LOWER, padding=0)
@@ -157,6 +158,22 @@ class qt(QMainWindow, form_class):
         # self.p6.setMaximumHeight(-1)
         # self.data = np.random.normal(size=(10, 1000))
         self.ptr = 0
+
+        ERROR_LOWER_line = pg.InfiniteLine(angle=0, movable=True, pen='y')
+        ERROR_LOWER_line.setValue(ERROR_LOWER)
+        self.p6.addItem(ERROR_LOWER_line, ignoreBounds=True)
+
+        ERROR_UPPER_line = pg.InfiniteLine(angle=0, movable=True, pen='y')
+        ERROR_UPPER_line.setValue(ERROR_UPPER)
+        self.p6.addItem(ERROR_UPPER_line, ignoreBounds=True)
+
+        ERROR_LIMIT_LOWER_line = pg.InfiniteLine(angle=0, movable=True, pen='r')
+        ERROR_LIMIT_LOWER_line.setValue(ERROR_LIMIT_LOWER)
+        self.p6.addItem(ERROR_LIMIT_LOWER_line, ignoreBounds=True)
+
+        ERROR_LIMIT_UPPER_line = pg.InfiniteLine(angle=0, movable=True, pen='r')
+        ERROR_LIMIT_UPPER_line.setValue(ERROR_LIMIT_UPPER)
+        self.p6.addItem(ERROR_LIMIT_UPPER_line, ignoreBounds=True)
 
         # self.graphWidget.nextRow()
 
