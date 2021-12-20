@@ -3,8 +3,10 @@
 
 import os, sys, time, datetime, warnings, signal
 from PyQt5.QtCore import QSize, QRect, QObject, pyqtSignal, QThread, pyqtSignal, pyqtSlot, Qt, QEvent, QTimer
-from PyQt5.QtWidgets import QApplication, QComboBox, QDialog, QMainWindow, QWidget, QLabel, QTextEdit, QListWidget, QListView
+from PyQt5.QtWidgets import QApplication, QComboBox, QDialog, QMainWindow, QWidget, QLabel, QTextEdit, QListWidget, \
+    QListView
 from PyQt5.QtWidgets import QPushButton, QGridLayout, QLCDNumber
+from PyQt5.QtWidgets import *
 from PyQt5 import uic, QtTest, QtGui, QtCore
 
 import numpy as np
@@ -17,7 +19,7 @@ import pyqtgraph as pg
 import time
 import serial
 
-TEST_DATA = True    # if read data from excel
+TEST_DATA = True  # if read data from excel
 # TEST_DATA = False # if read data from 34461a
 
 if not TEST_DATA:
@@ -32,27 +34,31 @@ ATCC = b'ATCC\r\n'
 ATCF = b'ATCF\r\n'
 # AT Command for USB Temperature sensor
 
-READ_DELAY = 0.01
+# READ_DELAY = 0.01
+READ_DELAY = 0.05
 ENABLE_BLANK_LINE = False
 
 ERROR_REF = 0.05  # 5%
-ERROR_LIMIT = 0.1   # 10%
+# ERROR_LIMIT = 0.1   # 10%
+ERROR_LIMIT = 0.125  # 12.5%
 PLOT_MIN_MAX = 0.15  # 15%
 
-RES_REF = 33000
+# RES_REF = 33000
+RES_REF = 5000
 
-ERROR_UPPER = RES_REF + RES_REF * ERROR_REF     # + 5%
-ERROR_LOWER = RES_REF - RES_REF * ERROR_REF     # - 5%
+ERROR_UPPER = RES_REF + RES_REF * ERROR_REF  # + 5%
+ERROR_LOWER = RES_REF - RES_REF * ERROR_REF  # - 5%
 
-ERROR_LIMIT_UPPER = RES_REF + RES_REF * ERROR_LIMIT     # + 10%
-ERROR_LIMIT_LOWER = RES_REF - RES_REF * ERROR_LIMIT     # - 10%
+ERROR_LIMIT_UPPER = RES_REF + RES_REF * ERROR_LIMIT  # + 10%
+ERROR_LIMIT_LOWER = RES_REF - RES_REF * ERROR_LIMIT  # - 10%
 
-PLOT_UPPER = RES_REF + RES_REF * PLOT_MIN_MAX   # + 15%
-PLOT_LOWER = RES_REF - RES_REF * PLOT_MIN_MAX   # - 15%
+PLOT_UPPER = RES_REF + RES_REF * PLOT_MIN_MAX  # + 15%
+PLOT_LOWER = RES_REF - RES_REF * PLOT_MIN_MAX  # - 15%
 
 x_size = 200
 
 form_class = uic.loadUiType('RMS.ui')[0]
+
 
 # --------------------------------------------------------------
 # [THREAD] RECEIVE from PLC (receive from PLC)
@@ -67,8 +73,10 @@ class THREAD_RECEIVE_Data(QThread):
         self.time_format = '%Y%m%d_%H%M%S'
 
         if TEST_DATA:
-            self.test_data = pd.read_excel('./test_data.xlsx')
-            self.data_count = 1700
+            # self.test_data = pd.read_excel('./test_data.xlsx')
+            # self.data_count = 1700
+            self.test_data = pd.read_excel('./20211216_170442.xlsx')
+            self.data_count = 0
         else:
             self.ks_34461a = keysight_34461a(sys.argv)
 
@@ -88,8 +96,8 @@ class THREAD_RECEIVE_Data(QThread):
             if TEST_DATA:
                 read = self.test_data[1][self.data_count]
                 self.data_count += 1
-                if self.data_count > 5000:
-                    self.data_count = 1700
+                if self.data_count > 18700:  # 5000:
+                    self.data_count = 0  # 1700
 
                 time.sleep(READ_DELAY)
             else:
@@ -110,7 +118,7 @@ class THREAD_RECEIVE_Data(QThread):
 
     def mySuspend(self):
         self.__suspend = True
-         
+
     def myResume(self):
         self.__suspend = False
 
@@ -148,16 +156,19 @@ class qt(QMainWindow, form_class):
 
         # self.plot(self.data, self.y1)
 
+        # table Widget
+        self.tableWidget.setRowCount(6)
+        self.tableWidget.setColumnCount(17)
+        # self.tableWidget.setColumnWidth(0, self.tableWidget.columnWidth()/10)
+        self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.tableWidget.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
         # Updating Plot
         self.p6 = self.graphWidget.addPlot(title="Res")
         self.curve = self.p6.plot(pen='g')
         self.p6.setGeometry(0, 0, x_size, 5)
 
         self.p6.setYRange(PLOT_UPPER, PLOT_LOWER, padding=0)
-        # self.p6.setMinimumHeight(1)
-        # self.p6.setMaximumHeight(-1)
-        # self.data = np.random.normal(size=(10, 1000))
-        self.ptr = 0
 
         ERROR_LOWER_line = pg.InfiniteLine(angle=0, movable=True, pen='y')
         ERROR_LOWER_line.setValue(ERROR_LOWER)
@@ -179,6 +190,8 @@ class qt(QMainWindow, form_class):
 
         self.p7 = self.graphWidget_2.addPlot(title="Temp.")
         self.curve_2 = self.p7.plot(pen='y')
+
+        self.p7.setYRange(0, 40, padding=0)
 
         self.timer = QtCore.QTimer()
         self.timer.setInterval(10)
@@ -205,6 +218,8 @@ class qt(QMainWindow, form_class):
 
         self.prev_data = 0
         self.data_list = []
+        self.blank_count = 0
+        self.line_data = []
 
         self.log_flag = False
 
@@ -221,7 +236,9 @@ class qt(QMainWindow, form_class):
 
         print(msg)
 
+        # data filter
         if msg != ERROR_LIMIT_UPPER:
+            self.blank_count = 0
             self.data_list.append(msg)
             self.prev_data = msg
             return
@@ -231,26 +248,32 @@ class qt(QMainWindow, form_class):
             print('mean: ', mean_data)
             self.prev_data = msg
             msg = mean_data
+            mean_data = mean_data.round(2)
+            self.line_data.append(mean_data)
         elif (self.prev_data == ERROR_LIMIT_UPPER and msg == ERROR_LIMIT_UPPER) and not ENABLE_BLANK_LINE:
-            return
+            self.blank_count += 1
+            if self.blank_count > 15:
+                print(self.line_data)
+                self.setTableWidgetData(self.line_data)
+                self.line_data = []
+                self.blank_count = 0
 
-        if self.first_flag == 1:
-            self.y1 = np.full(len(self.data), msg)
-            self.first_flag = 0
 
-        # self.curve.setData(self.data[self.ptr % 10])
+        # elif (self.prev_data == ERROR_LIMIT_UPPER and msg == ERROR_LIMIT_UPPER) and not ENABLE_BLANK_LINE:
+        #     return
+
         self.y1 = np.roll(self.y1, -1)
 
         self.y1[-1] = msg
 
         self.curve.setData(self.y1)
 
-        msg = msg / 1000;   # convert k ohm
+        msg = msg / 1000;  # convert k ohm
         self.lcdNum_T_PV_CH1.display("{:.2f}".format(msg))
 
-        if self.ptr == 0:
-            self.p6.enableAutoRange('xy', False)  ## stop auto-scaling after the first data set is plotted
-        self.ptr += 1
+    def setTableWidgetData(self, line_data):
+        for idx in range(0, 16):
+            self.tableWidget.setItem(0, idx, QTableWidgetItem(str(line_data[idx])))
 
     def sine_plot(self):
         # self.g_plotWidget.plot(hour, temperature)
@@ -259,7 +282,7 @@ class qt(QMainWindow, form_class):
         self.y2[-1] = np.sin(self.data[self.counter % x_size])
         self.curve_2.setData(self.y2)
 
-        mean_value = 10 + np.round(self.y2[-1], 1)/10
+        mean_value = 10 + np.round(self.y2[-1], 1) / 10
         if self.counter % 50 == 0:
             self.lcdNum_T_SV_CH1.display("{:.1f}".format(mean_value))
         # print('y2: ', mean_value)
@@ -291,8 +314,8 @@ class qt(QMainWindow, form_class):
             _time = datetime.now()
             _time = _time.strftime(self.thread_rcv_data.time_format)
 
-            with pd.ExcelWriter(_time+'.xlsx') as writer:
-                df1.to_excel(writer, _time+'.xlsx')
+            with pd.ExcelWriter(_time + '.xlsx') as writer:
+                df1.to_excel(writer, _time + '.xlsx')
 
             self.resist_data = []
 
@@ -338,4 +361,3 @@ def run():
 
 if __name__ == "__main__":
     run()
-

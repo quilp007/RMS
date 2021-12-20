@@ -1326,18 +1326,14 @@
      </widget>
     </widget>
     <widget class="QWidget" name="sw_ALARM_LIST">
-     <widget class="QTextEdit" name="textEdit_4">
+     <widget class="QTableWidget" name="tableWidget">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>10</y>
-        <width>1000</width>
-        <height>530</height>
+        <x>40</x>
+        <y>40</y>
+        <width>1511</width>
+        <height>331</height>
        </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(0, 0, 0);
-color: rgb(255, 0, 0);</string>
       </property>
      </widget>
     </widget>
