@@ -35,7 +35,7 @@ ATCF = b'ATCF\r\n'
 # AT Command for USB Temperature sensor
 
 # READ_DELAY = 0.01
-READ_DELAY = 0.05
+READ_DELAY = 0.01
 ENABLE_BLANK_LINE = False
 
 ERROR_REF = 0.05  # 5%
@@ -56,6 +56,7 @@ PLOT_UPPER = RES_REF + RES_REF * PLOT_MIN_MAX  # + 15%
 PLOT_LOWER = RES_REF - RES_REF * PLOT_MIN_MAX  # - 15%
 
 x_size = 200
+LINE_NUM = 16
 
 form_class = uic.loadUiType('RMS.ui')[0]
 
@@ -76,7 +77,7 @@ class THREAD_RECEIVE_Data(QThread):
             # self.test_data = pd.read_excel('./test_data.xlsx')
             # self.data_count = 1700
             self.test_data = pd.read_excel('./20211216_170442.xlsx')
-            self.data_count = 0
+            self.data_count = 580
         else:
             self.ks_34461a = keysight_34461a(sys.argv)
 
@@ -97,7 +98,7 @@ class THREAD_RECEIVE_Data(QThread):
                 read = self.test_data[1][self.data_count]
                 self.data_count += 1
                 if self.data_count > 18700:  # 5000:
-                    self.data_count = 0  # 1700
+                    self.data_count = 580  # 1700
 
                 time.sleep(READ_DELAY)
             else:
@@ -157,11 +158,13 @@ class qt(QMainWindow, form_class):
         # self.plot(self.data, self.y1)
 
         # table Widget
-        self.tableWidget.setRowCount(6)
-        self.tableWidget.setColumnCount(17)
+        self.tableWidget.setRowCount(5)
+        self.tableWidget.setColumnCount(LINE_NUM + 2)   # MEAN, parallel resistance
         # self.tableWidget.setColumnWidth(0, self.tableWidget.columnWidth()/10)
         self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tableWidget.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.tableWidget.setHorizontalHeaderItem(LINE_NUM, QTableWidgetItem('MEAN'))
+        self.tableWidget.setHorizontalHeaderItem(LINE_NUM + 1, QTableWidgetItem('P. RES'))
 
         # Updating Plot
         self.p6 = self.graphWidget.addPlot(title="Res")
@@ -223,6 +226,8 @@ class qt(QMainWindow, form_class):
 
         self.log_flag = False
 
+        self.main_button_function(self.btn_main)
+
     def to_excel_func(self, _time, data):
         tt = [_time, data]
         self.resist_data.append(tt)
@@ -252,8 +257,18 @@ class qt(QMainWindow, form_class):
             self.line_data.append(mean_data)
         elif (self.prev_data == ERROR_LIMIT_UPPER and msg == ERROR_LIMIT_UPPER) and not ENABLE_BLANK_LINE:
             self.blank_count += 1
-            if self.blank_count > 15:
+            if self.blank_count > 20:
+                sum = 0
+                self.line_data.append(np.nanmean(self.line_data).round(2))
+                for idx in range(LINE_NUM):
+                    sum += 1/self.line_data[idx]
+
+                sum = 1 / sum
+                self.line_data.append(sum.round(2))
+
                 print(self.line_data)
+                self.tableWidget.removeRow(4)
+                self.tableWidget.insertRow(0)
                 self.setTableWidgetData(self.line_data)
                 self.line_data = []
                 self.blank_count = 0
@@ -272,8 +287,10 @@ class qt(QMainWindow, form_class):
         self.lcdNum_T_PV_CH1.display("{:.2f}".format(msg))
 
     def setTableWidgetData(self, line_data):
-        for idx in range(0, 16):
+        for idx in range(0, LINE_NUM + 2):
             self.tableWidget.setItem(0, idx, QTableWidgetItem(str(line_data[idx])))
+
+        # self.tableWidget.setItem(0, LINE_NUM, QTableWidgetItem(str(line_data[-1])))
 
     def sine_plot(self):
         # self.g_plotWidget.plot(hour, temperature)
