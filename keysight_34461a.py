@@ -2,12 +2,13 @@ import pyvisa as visa
 import time
 from datetime import datetime
 
-# start of untitled
 
 class keysight_34461a:
-    def __init__(self, param):
-        _state = False
-        _range = 10000
+    def __init__(self, res_range=100000, display=False):
+        # _state = False
+        # _range = 10000
+        _state = display
+        _range = res_range
         _resolution = 0.2
 
         # VISA_ADDRESS = 'TCPIP::A-34461A-00000.local::inst0::INSTR'
@@ -54,7 +55,6 @@ class keysight_34461a:
 
         self.v34461A.close()
         self.rm.close()
-
 
 # if __name__ == "__main__":
 #     ks_34461a = keysight_34461a(sys.argv)

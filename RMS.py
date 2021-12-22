@@ -19,11 +19,35 @@ import pyqtgraph as pg
 import time
 import serial
 
+# ------------------------------------------------------------------------------
+# config -----------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+
+# RES_REF = 33000
+RES_REF = 5000
+
+LINE_NUM = 16           # thermal film line
+ROW_COUNT = 30          # limit: 30
+
+ERROR_REF = 0.05        # 5%
+# ERROR_LIMIT = 0.1     # 10%
+ERROR_LIMIT = 0.125     # 12.5%
+PLOT_MIN_MAX = 0.15     # 15%
+
+x_size = 300        # graph's x size
+
+# config for keysight 34461a
+display = True      # 34461a display On(True)/Off(False)
+res_range = 100000  # 34461a range (ohm, not k ohm)
+COM_PORT = 'com4'
+# ------------------------------------------------------------------------------
+
 TEST_DATA = True  # if read data from excel
 # TEST_DATA = False # if read data from 34461a
 
 if not TEST_DATA:
-    us = serial.Serial('com4', 19200)
+    us = serial.Serial(COM_PORT, 19200)
+
 
 # AT Command for USB Temperature sensor
 ATCZ = b'ATCZ\r\n'
@@ -35,16 +59,8 @@ ATCF = b'ATCF\r\n'
 # AT Command for USB Temperature sensor
 
 # READ_DELAY = 0.01
-READ_DELAY = 0.01
+READ_DELAY = 0.0005
 ENABLE_BLANK_LINE = False
-
-ERROR_REF = 0.05  # 5%
-# ERROR_LIMIT = 0.1   # 10%
-ERROR_LIMIT = 0.125  # 12.5%
-PLOT_MIN_MAX = 0.15  # 15%
-
-# RES_REF = 33000
-RES_REF = 5000
 
 ERROR_UPPER = RES_REF + RES_REF * ERROR_REF  # + 5%
 ERROR_LOWER = RES_REF - RES_REF * ERROR_REF  # - 5%
@@ -54,9 +70,6 @@ ERROR_LIMIT_LOWER = RES_REF - RES_REF * ERROR_LIMIT  # - 10%
 
 PLOT_UPPER = RES_REF + RES_REF * PLOT_MIN_MAX  # + 15%
 PLOT_LOWER = RES_REF - RES_REF * PLOT_MIN_MAX  # - 15%
-
-x_size = 200
-LINE_NUM = 16
 
 form_class = uic.loadUiType('RMS.ui')[0]
 
@@ -79,7 +92,8 @@ class THREAD_RECEIVE_Data(QThread):
             self.test_data = pd.read_excel('./20211216_170442.xlsx')
             self.data_count = 580
         else:
-            self.ks_34461a = keysight_34461a(sys.argv)
+            # self.ks_34461a = keysight_34461a(sys.argv)
+            self.ks_34461a = keysight_34461a(res_range, display)
 
         self.__suspend = False
         self.__exit = False
@@ -141,11 +155,14 @@ class qt(QMainWindow, form_class):
         self.setupUi(self)
         # self.setWindowFlags(Qt.FramelessWindowHint)
 
+        # self.loadParam()
+        # self.lcdNum_line_num.valueChanged.connect(lambda: self.setParam(self.lcdNum_line_num))
+
         self.btn_main.clicked.connect(lambda: self.main_button_function(self.btn_main))
         self.btn_parameter.clicked.connect(lambda: self.main_button_function(self.btn_parameter))
         self.btn_alarm.clicked.connect(lambda: self.main_button_function(self.btn_alarm))
         self.btn_alarm_list.clicked.connect(lambda: self.main_button_function(self.btn_alarm_list))
-        self.btn_logon.clicked.connect(lambda: self.main_button_function(self.btn_logon))
+        # self.btn_logon.clicked.connect(lambda: self.main_button_function(self.btn_logon))
 
         self.btn_start.clicked.connect(lambda: self.btn_34461a(self.btn_start))
         self.btn_stop.clicked.connect(lambda: self.btn_34461a(self.btn_stop))
@@ -157,9 +174,9 @@ class qt(QMainWindow, form_class):
 
         # self.plot(self.data, self.y1)
 
-        # table Widget
-        self.tableWidget.setRowCount(5)
-        self.tableWidget.setColumnCount(LINE_NUM + 2)   # MEAN, parallel resistance
+        # table Widget ------------------------------------------------------------------
+        self.tableWidget.setRowCount(ROW_COUNT)
+        self.tableWidget.setColumnCount(LINE_NUM + 2)  # MEAN, parallel resistance
         # self.tableWidget.setColumnWidth(0, self.tableWidget.columnWidth()/10)
         self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tableWidget.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
@@ -228,6 +245,20 @@ class qt(QMainWindow, form_class):
 
         self.main_button_function(self.btn_main)
 
+    def loadParam(self):
+        global LINE_NUM
+        with shelve.open('config') as f:
+            try:
+                LINE_NUM = f['LINE_NUM']
+                self.lcdNum_line_num.display(LINE_NUM)
+            except Exception as e:
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+
+    def stParam(self, lcdNum):
+        with shelve.open('config') as f:
+            if lcdNum == self.lcdNum_line_num:
+                f['LINE_NUM'] = self.lcdNum_line_num.value()
+
     def to_excel_func(self, _time, data):
         tt = [_time, data]
         self.resist_data.append(tt)
@@ -261,18 +292,17 @@ class qt(QMainWindow, form_class):
                 sum = 0
                 self.line_data.append(np.nanmean(self.line_data).round(2))
                 for idx in range(LINE_NUM):
-                    sum += 1/self.line_data[idx]
+                    sum += 1 / self.line_data[idx]
 
                 sum = 1 / sum
                 self.line_data.append(sum.round(2))
 
                 print(self.line_data)
-                self.tableWidget.removeRow(4)
+                self.tableWidget.removeRow(ROW_COUNT - 1)
                 self.tableWidget.insertRow(0)
                 self.setTableWidgetData(self.line_data)
                 self.line_data = []
                 self.blank_count = 0
-
 
         # elif (self.prev_data == ERROR_LIMIT_UPPER and msg == ERROR_LIMIT_UPPER) and not ENABLE_BLANK_LINE:
         #     return
@@ -283,7 +313,7 @@ class qt(QMainWindow, form_class):
 
         self.curve.setData(self.y1)
 
-        msg = msg / 1000;  # convert k ohm
+        msg = msg / 1000  # convert k ohm
         self.lcdNum_T_PV_CH1.display("{:.2f}".format(msg))
 
     def setTableWidgetData(self, line_data):
