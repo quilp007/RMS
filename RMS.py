@@ -26,20 +26,25 @@ import serial
 # RES_REF = 33000
 RES_REF = 5000
 
-LINE_NUM = 16           # thermal film line
-ROW_COUNT = 30          # limit: 30
+LINE_NUM = 16  # thermal film line
+ROW_COUNT = 30  # limit: 30
 
-ERROR_REF = 0.05        # 5%
+ERROR_REF = 0.05  # 5%
 # ERROR_LIMIT = 0.1     # 10%
-ERROR_LIMIT = 0.125     # 12.5%
-PLOT_MIN_MAX = 0.15     # 15%
+ERROR_LIMIT = 0.125  # 12.5%
+PLOT_MIN_MAX = 0.15  # 15%
 
-x_size = 300        # graph's x size
+x_size = 200  # graph's x size
 
 # config for keysight 34461a
-display = True      # 34461a display On(True)/Off(False)
+display = True  # 34461a display On(True)/Off(False)
 res_range = 100000  # 34461a range (ohm, not k ohm)
 COM_PORT = 'com4'
+
+READ_DELAY = 0.01
+# READ_DELAY = 0.0005
+ENABLE_BLANK_LINE = False
+BLANK_DATA_COUNT = 20
 # ------------------------------------------------------------------------------
 
 TEST_DATA = True  # if read data from excel
@@ -47,7 +52,6 @@ TEST_DATA = True  # if read data from excel
 
 if not TEST_DATA:
     us = serial.Serial(COM_PORT, 19200)
-
 
 # AT Command for USB Temperature sensor
 ATCZ = b'ATCZ\r\n'
@@ -58,9 +62,6 @@ ATCC = b'ATCC\r\n'
 ATCF = b'ATCF\r\n'
 # AT Command for USB Temperature sensor
 
-# READ_DELAY = 0.01
-READ_DELAY = 0.0005
-ENABLE_BLANK_LINE = False
 
 ERROR_UPPER = RES_REF + RES_REF * ERROR_REF  # + 5%
 ERROR_LOWER = RES_REF - RES_REF * ERROR_REF  # - 5%
@@ -146,6 +147,10 @@ class THREAD_RECEIVE_Data(QThread):
         self.ks_34461a.close()
 
 
+ptr = 0
+state = 0
+
+
 class qt(QMainWindow, form_class):
     def __init__(self):
         # QMainWindow.__init__(self)
@@ -169,10 +174,11 @@ class qt(QMainWindow, form_class):
         self.btn_close.clicked.connect(lambda: self.btn_34461a(self.btn_close))
 
         self.data = np.linspace(-np.pi, np.pi, x_size)
-        self.y1 = np.zeros(len(self.data))
+        self.y1_1 = np.zeros(len(self.data))
+        self.y1_2 = np.zeros(len(self.data))
         self.y2 = np.sin(self.data)
 
-        # self.plot(self.data, self.y1)
+        # self.plot(self.data, self.y1_1)
 
         # table Widget ------------------------------------------------------------------
         self.tableWidget.setRowCount(ROW_COUNT)
@@ -185,7 +191,8 @@ class qt(QMainWindow, form_class):
 
         # Updating Plot
         self.p6 = self.graphWidget.addPlot(title="Res")
-        self.curve = self.p6.plot(pen='g')
+        self.curve1_1 = self.p6.plot(pen='g')
+        self.curve1_2 = self.p6.plot(pen='r')
         self.p6.setGeometry(0, 0, x_size, 5)
 
         self.p6.setYRange(PLOT_UPPER, PLOT_LOWER, padding=0)
@@ -209,7 +216,7 @@ class qt(QMainWindow, form_class):
         # self.graphWidget.nextRow()
 
         self.p7 = self.graphWidget_2.addPlot(title="Temp.")
-        self.curve_2 = self.p7.plot(pen='y')
+        self.curve2 = self.p7.plot(pen='y')
 
         self.p7.setYRange(0, 40, padding=0)
 
@@ -229,19 +236,20 @@ class qt(QMainWindow, form_class):
         self.first_flag = 1
 
         self.thread_rcv_data = THREAD_RECEIVE_Data()
-        self.thread_rcv_data.intReady.connect(self.update_func_2)
+        self.thread_rcv_data.intReady.connect(self.update_func_1)
         self.thread_rcv_data.to_excel.connect(self.to_excel_func)
         self.thread_rcv_data.start()
 
         self.resist_data = []
         # self.writer = pd.ExcelWriter('./data.xlsx')
 
-        self.prev_data = 0
+        self.prev_data = ERROR_LIMIT_UPPER
         self.data_list = []
         self.blank_count = 0
         self.line_data = []
 
         self.log_flag = False
+        self.sheet_blank_flag = False
 
         self.main_button_function(self.btn_main)
 
@@ -263,6 +271,132 @@ class qt(QMainWindow, form_class):
         tt = [_time, data]
         self.resist_data.append(tt)
         print(tt)
+
+    def update_func_1_test(self, msg):
+        global ptr, state
+        if msg > ERROR_LIMIT_UPPER:
+            msg = ERROR_LIMIT_UPPER
+        elif msg < ERROR_LIMIT_LOWER:
+            msg = ERROR_LIMIT_LOWER
+
+        print(msg)
+
+        if msg != ERROR_LIMIT_UPPER:
+            self.sheet_blank_flag = False
+            self.blank_count = 0
+            self.data_list.append(msg)
+            self.prev_data = msg
+            return
+        else:  # msg == ERROR_LIMIT_UPPER
+            if self.prev_data != ERROR_LIMIT_UPPER:  # rising edge
+                self.blank_count += 1
+                mean_data = np.mean(self.data_list)
+                self.data_list = []
+                print('mean: ', mean_data)
+                msg = mean_data
+                mean_data = mean_data.round(2)
+                self.line_data.append(mean_data)
+            elif self.prev_data == ERROR_LIMIT_UPPER:  # BLANK LEVEL
+                if self.blank_count > BLANK_DATA_COUNT and self.sheet_blank_flag == False:
+                    self.sheet_blank_flag = True
+                    ptr = 0
+                    p_r_sum = 0
+                    self.line_data.append(np.nanmean(self.line_data).round(2))
+                    for idx in range(LINE_NUM):
+                        p_r_sum += 1 / self.line_data[idx]
+
+                    p_r_sum = 1 / p_r_sum
+                    self.line_data.append(p_r_sum.round(2))
+
+                    print(self.line_data)
+                    self.tableWidget.removeRow(ROW_COUNT - 1)
+                    self.tableWidget.insertRow(0)
+                    self.setTableWidgetData(self.line_data)
+                    self.line_data = []
+                    self.blank_count = 0
+
+            self.prev_data = msg
+
+        # self.y1_1 = np.roll(self.y1_1, -1)
+
+        # self.y1_1[-1] = msg
+        # self.curve1_1.setData(self.y1_1)
+
+        if ptr == 0:
+            self.y1_1 = self.y1_2[:]
+            self.curve1_1.setData(self.y1_1)
+            self.y1_2 = np.zeros(x_size)
+
+        self.y1_2[ptr] = msg
+        ptr += 1
+        self.curve1_2.setData(self.y1_2)
+
+        if msg != ERROR_LIMIT_UPPER or msg != ERROR_LIMIT_LOWER:
+            msg = msg / 1000  # convert k ohm
+            self.lcdNum_T_PV_CH1.display("{:.2f}".format(msg))
+
+    def update_func_1(self, msg):
+        global ptr
+        if msg > ERROR_LIMIT_UPPER:
+            msg = ERROR_LIMIT_UPPER
+        elif msg < ERROR_LIMIT_LOWER:
+            msg = ERROR_LIMIT_LOWER
+
+        print('34661A: ', msg)
+
+        # data filter
+        if msg != ERROR_LIMIT_UPPER:
+            self.blank_count = 0
+            self.data_list.append(msg)
+            self.prev_data = msg
+            return
+        elif self.prev_data != ERROR_LIMIT_UPPER:
+            mean_data = np.mean(self.data_list)
+            self.data_list = []
+            print('mean: ', mean_data)
+            self.prev_data = msg
+            msg = mean_data
+            mean_data = mean_data.round(2)
+            self.line_data.append(mean_data)
+        elif (self.prev_data == ERROR_LIMIT_UPPER and msg == ERROR_LIMIT_UPPER) and not ENABLE_BLANK_LINE:
+            self.blank_count += 1
+            if self.blank_count > 20:
+                ptr = 0
+                p_r_sum = 0
+                self.line_data.append(np.nanmean(self.line_data).round(2))
+                for idx in range(LINE_NUM):
+                    p_r_sum += (1 / self.line_data[idx])
+
+                p_r_sum = (1 / p_r_sum)
+                # self.line_data.append(p_r_sum.round(2))
+                self.line_data[LINE_NUM + 1] = p_r_sum.round(2)
+
+                print(self.line_data, ' length: ', len(self.line_data))
+                self.tableWidget.removeRow(ROW_COUNT - 1)
+                self.tableWidget.insertRow(0)
+                self.setTableWidgetData(self.line_data)
+                self.line_data = []
+                self.blank_count = 0
+
+        # self.y1_1 = np.roll(self.y1_1, -1)
+
+        # self.y1_1[-1] = msg
+        # self.curve1_1.setData(self.y1_1)
+
+        if ptr == 0:
+            self.y1_1 = self.y1_2[:]
+            self.curve1_1.setData(self.y1_1)
+            # self.y1_2 = np.zeros(x_size)
+            self.y1_2 = np.zeros(x_size)
+            self.y1_2[:] = ERROR_LIMIT_UPPER
+
+        self.y1_2[ptr] = msg
+        ptr += 1
+        self.curve1_2.setData(self.y1_2)
+
+        if msg != ERROR_LIMIT_UPPER:
+            msg = msg / 1000  # convert k ohm
+            self.lcdNum_T_PV_CH1.display("{:.2f}".format(msg))
 
     def update_func_2(self, msg):
         if msg > ERROR_LIMIT_UPPER:
@@ -289,13 +423,13 @@ class qt(QMainWindow, form_class):
         elif (self.prev_data == ERROR_LIMIT_UPPER and msg == ERROR_LIMIT_UPPER) and not ENABLE_BLANK_LINE:
             self.blank_count += 1
             if self.blank_count > 20:
-                sum = 0
+                p_r_sum = 0
                 self.line_data.append(np.nanmean(self.line_data).round(2))
                 for idx in range(LINE_NUM):
-                    sum += 1 / self.line_data[idx]
+                    p_r_sum += 1 / self.line_data[idx]
 
-                sum = 1 / sum
-                self.line_data.append(sum.round(2))
+                p_r_sum = 1 / p_r_sum
+                self.line_data.append(p_r_sum.round(2))
 
                 print(self.line_data)
                 self.tableWidget.removeRow(ROW_COUNT - 1)
@@ -307,11 +441,11 @@ class qt(QMainWindow, form_class):
         # elif (self.prev_data == ERROR_LIMIT_UPPER and msg == ERROR_LIMIT_UPPER) and not ENABLE_BLANK_LINE:
         #     return
 
-        self.y1 = np.roll(self.y1, -1)
+        self.y1_1 = np.roll(self.y1_1, -1)
 
-        self.y1[-1] = msg
+        self.y1_1[-1] = msg
 
-        self.curve.setData(self.y1)
+        self.curve1_1.setData(self.y1_1)
 
         msg = msg / 1000  # convert k ohm
         self.lcdNum_T_PV_CH1.display("{:.2f}".format(msg))
@@ -327,7 +461,7 @@ class qt(QMainWindow, form_class):
         # curve = self.graphWidget_2.plot(pen='y')
         self.y2 = np.roll(self.y2, -1)
         self.y2[-1] = np.sin(self.data[self.counter % x_size])
-        self.curve_2.setData(self.y2)
+        self.curve2.setData(self.y2)
 
         mean_value = 10 + np.round(self.y2[-1], 1) / 10
         if self.counter % 50 == 0:
