@@ -28,6 +28,7 @@ RES_REF = 5000
 
 LINE_NUM = 16  # thermal film line
 ROW_COUNT = 30  # limit: 30
+ROW_COUNT_2 = 3  # limit: 3
 
 ERROR_REF = 0.05  # 5%
 # ERROR_LIMIT = 0.1     # 10%
@@ -188,6 +189,15 @@ class qt(QMainWindow, form_class):
         self.tableWidget.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tableWidget.setHorizontalHeaderItem(LINE_NUM, QTableWidgetItem('MEAN'))
         self.tableWidget.setHorizontalHeaderItem(LINE_NUM + 1, QTableWidgetItem('P. RES'))
+
+        # table Widget 2-----------------------------------------------------------------
+        self.tableWidget_2.setRowCount(ROW_COUNT_2)
+        self.tableWidget_2.setColumnCount(LINE_NUM + 2)  # MEAN, parallel resistance
+        # self.tableWidget_2.setColumnWidth(0, self.tableWidget.columnWidth()/10)
+        self.tableWidget_2.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.tableWidget_2.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.tableWidget_2.setHorizontalHeaderItem(LINE_NUM, QTableWidgetItem('MEAN'))
+        self.tableWidget_2.setHorizontalHeaderItem(LINE_NUM + 1, QTableWidgetItem('P. RES'))
 
         # Updating Plot
         self.p6 = self.graphWidget.addPlot(title="Res")
@@ -374,7 +384,12 @@ class qt(QMainWindow, form_class):
                 print(self.line_data, ' length: ', len(self.line_data))
                 self.tableWidget.removeRow(ROW_COUNT - 1)
                 self.tableWidget.insertRow(0)
-                self.setTableWidgetData(self.line_data)
+                self.setTableWidgetData(self.line_data, self.tableWidget)
+
+                self.tableWidget_2.removeRow(ROW_COUNT_2 - 1)
+                self.tableWidget_2.insertRow(0)
+                self.setTableWidgetData(self.line_data, self.tableWidget_2)
+
                 self.line_data = []
                 self.blank_count = 0
 
@@ -450,9 +465,9 @@ class qt(QMainWindow, form_class):
         msg = msg / 1000  # convert k ohm
         self.lcdNum_T_PV_CH1.display("{:.2f}".format(msg))
 
-    def setTableWidgetData(self, line_data):
+    def setTableWidgetData(self, line_data, tableWidget):
         for idx in range(0, LINE_NUM + 2):
-            self.tableWidget.setItem(0, idx, QTableWidgetItem(str(line_data[idx])))
+            tableWidget.setItem(0, idx, QTableWidgetItem(str(line_data[idx])))
 
         # self.tableWidget.setItem(0, LINE_NUM, QTableWidgetItem(str(line_data[-1])))
 

@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>1920</width>
-    <height>1027</height>
+    <height>997</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -39,7 +39,7 @@
      <bool>false</bool>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="sw_MAIN">
      <widget class="QFrame" name="frame_Temp">
@@ -335,7 +335,7 @@
         <x>30</x>
         <y>30</y>
         <width>1491</width>
-        <height>611</height>
+        <height>331</height>
        </rect>
       </property>
      </widget>
@@ -382,9 +382,19 @@
       <property name="geometry">
        <rect>
         <x>30</x>
-        <y>710</y>
+        <y>380</y>
         <width>1491</width>
         <height>211</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QTableWidget" name="tableWidget_2">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>620</y>
+        <width>1481</width>
+        <height>271</height>
        </rect>
       </property>
      </widget>
