@@ -39,7 +39,7 @@
      <bool>false</bool>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="sw_MAIN">
      <widget class="QFrame" name="frame_Temp">
@@ -697,6 +697,16 @@
         <number>33</number>
        </property>
       </widget>
+     </widget>
+     <widget class="QTableWidget" name="tableWidget_3">
+      <property name="geometry">
+       <rect>
+        <x>1540</x>
+        <y>580</y>
+        <width>351</width>
+        <height>331</height>
+       </rect>
+      </property>
      </widget>
     </widget>
     <widget class="QWidget" name="sw_PARAMETER">

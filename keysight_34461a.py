@@ -17,6 +17,7 @@ class keysight_34461a:
         self.rm = visa.ResourceManager()
         self.v34461A = self.rm.open_resource(_VISA_ADDRESS)
         self.v34461A.write(':CONFigure:RESistance %G,%G' % (_range, _resolution))
+        # self.v34461A.write(':CONFigure:CURRent %G,%G' % (_range, _resolution))
         self.v34461A.write(':DISPlay:STATe %d' % (_state))
 
         self.time_format = '%Y%m%d_%H%M%S'

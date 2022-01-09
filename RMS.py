@@ -121,6 +121,7 @@ class THREAD_RECEIVE_Data(QThread):
 
             self.test_data = pd.read_excel('./data/20211223_154032.xlsx')
             self.data_count_start = 11000
+            # self.data_count_start = 3400
             self.data_count_end = 17400
 
             self.data_count = self.data_count_start
@@ -251,6 +252,16 @@ class qt(QMainWindow, form_class):
         self.tableWidget_2.setHorizontalHeaderItem(LINE_NUM, QTableWidgetItem('MEAN'))
         self.tableWidget_2.setHorizontalHeaderItem(LINE_NUM + 1, QTableWidgetItem('1S. P. RES'))
         self.tableWidget_2.setHorizontalHeaderItem(LINE_NUM + 2, QTableWidgetItem('2S. P. RES'))
+
+        # table Widget 3-----------------------------------------------------------------
+        self.tableWidget_3.setRowCount(5)
+        self.tableWidget_3.setColumnCount(1)
+        # self.tableWidget_2.setColumnWidth(0, self.tableWidget.columnWidth()/10)
+        self.tableWidget_3.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.tableWidget_3.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        # self.tableWidget_3.setHorizontalHeaderItem(LINE_NUM, QTableWidgetItem('MEAN'))
+        # self.tableWidget_3.setHorizontalHeaderItem(LINE_NUM + 1, QTableWidgetItem('1S. P. RES'))
+        # self.tableWidget_3.setHorizontalHeaderItem(LINE_NUM + 2, QTableWidgetItem('2S. P. RES'))
 
         # Updating Plot
         self.p6 = self.graphWidget_2.addPlot(title="Res")
@@ -454,8 +465,18 @@ class qt(QMainWindow, form_class):
             self.blank_count = 0
             self.data_list.append(msg)
             self.prev_data = msg
+
+            self.tableWidget_3.removeRow(5 - 1)
+            self.tableWidget_3.insertRow(0)
+            self.setTableWidgetData(self.data_list, self.tableWidget_3)
             return
+
         elif self.prev_data != self.error_limit_upper:   # blank area
+
+            # self.tableWidget_3.removeRow(5 - 1)
+            # self.tableWidget_3.insertRow(0)
+            # self.setTableWidgetData(np.round(np.divide(self.data_list, 1000), 1), self.tableWidget_3)
+
             mean_data = np.mean(self.data_list)
             self.data_list = []
             print('mean: ', mean_data)
