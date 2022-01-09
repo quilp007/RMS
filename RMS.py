@@ -214,6 +214,7 @@ class qt(QMainWindow, form_class):
         self.clickable(self.lcdNum_error_limit).connect(lambda: self.input_lcdNum(self.lcdNum_error_limit))
         self.clickable(self.lcdNum_dmm_r_range).connect(lambda: self.input_lcdNum(self.lcdNum_dmm_r_range))
         self.clickable(self.lcdNum_dmm_resolution).connect(lambda: self.input_lcdNum(self.lcdNum_dmm_resolution))
+        self.clickable(self.label_mode).connect(self.mode_change)
 
         self.btn_main.clicked.connect(lambda: self.main_button_function(self.btn_main))
         self.btn_parameter.clicked.connect(lambda: self.main_button_function(self.btn_parameter))
@@ -324,6 +325,8 @@ class qt(QMainWindow, form_class):
 
         self.prev_1s_p_res = 0
 
+        self.measure_mode = True    # resistance mode
+
         self.main_button_function(self.btn_main)
 
     def setParam(self):
@@ -404,6 +407,17 @@ class qt(QMainWindow, form_class):
     def save_var(self, key, value):
         with shelve.open('config') as f:
             f[key] = value
+
+    def mode_change(self):
+        item = ('Resistance', 'Current')
+        text, ok = QInputDialog.getItem(self, 'MODE', 'select Mode', item, 0, False)
+        if ok:
+            if text == 'Resistance':
+                self.measure_mode = True
+            else:
+                self.measure_mode = False
+
+            self.label_mode.setText(text)
 
     def input_lcdNum(self, lcdNum):
         global LINE_NUM, ERROR_REF, ERROR_LIMIT, RES_REF, P_RES_REF, DMM_RES_RANGE, DMM_RESOLUTION

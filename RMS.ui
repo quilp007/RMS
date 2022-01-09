@@ -39,7 +39,7 @@
      <bool>false</bool>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="sw_MAIN">
      <widget class="QFrame" name="frame_Temp">
@@ -1263,6 +1263,75 @@
          </property>
          <property name="text">
           <string>ohm</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+         <property name="indent">
+          <number>10</number>
+         </property>
+        </widget>
+       </widget>
+       <widget class="QFrame" name="ch1_chamber_setting_10">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>40</y>
+          <width>461</width>
+          <height>61</height>
+         </rect>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+        <widget class="QLabel" name="label_373">
+         <property name="geometry">
+          <rect>
+           <x>30</x>
+           <y>0</y>
+           <width>101</width>
+           <height>50</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Arial</family>
+           <pointsize>20</pointsize>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true"/>
+         </property>
+         <property name="text">
+          <string>MODE:</string>
+         </property>
+         <property name="indent">
+          <number>5</number>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_mode">
+         <property name="geometry">
+          <rect>
+           <x>250</x>
+           <y>10</y>
+           <width>151</width>
+           <height>40</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Arial</family>
+           <pointsize>20</pointsize>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true"/>
+         </property>
+         <property name="text">
+          <string>Resistance</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
