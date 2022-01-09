@@ -22,14 +22,25 @@ import serial
 # ------------------------------------------------------------------------------
 # config -----------------------------------------------------------------------
 # ------------------------------------------------------------------------------
-
-# RES_REF = 33000
-RES_REF = 5000
-P_RES_REF = 310
-
-LINE_NUM = 16  # thermal film line
+# table row number
 ROW_COUNT = 30  # limit: 30
 ROW_COUNT_2 = 3  # limit: 3
+
+# graph x size
+mean_plot_x_size = 100  # graph's x size
+x_size = 200  # graph's x size
+
+# use global variable!!!!!!!!!!!!!!!
+USE_GLOBAL_VARIABLE = False
+# USE_GLOBAL_VARIABLE = True
+
+LINE_NUM = 16  # thermal film line
+
+# RES_REF = 33000
+# RES_REF = 5000
+RES_REF = 14000
+# P_RES_REF = 310
+P_RES_REF = 875
 
 P_ERROR_REF = 0.05  # 5%
 P_ERROR_LIMIT = 0.125  # 12.5%
@@ -40,12 +51,10 @@ ERROR_REF = 0.05  # 5%
 ERROR_LIMIT = 0.125  # 12.5%
 PLOT_MIN_MAX = 0.15  # 15%
 
-mean_plot_x_size = 100  # graph's x size
-x_size = 200  # graph's x size
-
 # config for keysight 34461a
 display = True  # 34461a display On(True)/Off(False)
-res_range = 100000  # 34461a range (ohm, not k ohm)
+DMM_RES_RANGE = 100000  # 34461a range (ohm, not k ohm)
+DMM_RESOLUTION = 2
 COM_PORT = 'com4'
 
 # READ_DELAY = 0.01
@@ -69,24 +78,23 @@ ATCC = b'ATCC\r\n'
 ATCF = b'ATCF\r\n'
 # AT Command for USB Temperature sensor
 
-P_ERROR_UPPER = P_RES_REF + P_RES_REF * P_ERROR_REF  # + 5%
-P_ERROR_LOWER = P_RES_REF - P_RES_REF * P_ERROR_REF  # - 5%
-
-P_ERROR_LIMIT_UPPER = P_RES_REF + P_RES_REF * P_ERROR_LIMIT  # + 10%
-P_ERROR_LIMIT_LOWER = P_RES_REF - P_RES_REF * P_ERROR_LIMIT  # - 10%
-
-P_PLOT_UPPER = P_RES_REF + P_RES_REF * P_PLOT_MIN_MAX  # + 15%
-P_PLOT_LOWER = P_RES_REF - P_RES_REF * P_PLOT_MIN_MAX  # - 15%
-
-
-ERROR_UPPER = RES_REF + RES_REF * ERROR_REF  # + 5%
-ERROR_LOWER = RES_REF - RES_REF * ERROR_REF  # - 5%
-
-ERROR_LIMIT_UPPER = RES_REF + RES_REF * ERROR_LIMIT  # + 10%
-ERROR_LIMIT_LOWER = RES_REF - RES_REF * ERROR_LIMIT  # - 10%
-
-PLOT_UPPER = RES_REF + RES_REF * PLOT_MIN_MAX  # + 15%
-PLOT_LOWER = RES_REF - RES_REF * PLOT_MIN_MAX  # - 15%
+# P_ERROR_UPPER = P_RES_REF + P_RES_REF * P_ERROR_REF  # + 5%
+# P_ERROR_LOWER = P_RES_REF - P_RES_REF * P_ERROR_REF  # - 5%
+#
+# P_ERROR_LIMIT_UPPER = P_RES_REF + P_RES_REF * P_ERROR_LIMIT  # + 10%
+# P_ERROR_LIMIT_LOWER = P_RES_REF - P_RES_REF * P_ERROR_LIMIT  # - 10%
+#
+# P_PLOT_UPPER = P_RES_REF + P_RES_REF * P_PLOT_MIN_MAX  # + 15%
+# P_PLOT_LOWER = P_RES_REF - P_RES_REF * P_PLOT_MIN_MAX  # - 15%
+#
+# ERROR_UPPER = RES_REF + RES_REF * ERROR_REF  # + 5%
+# ERROR_LOWER = RES_REF - RES_REF * ERROR_REF  # - 5%
+#
+# ERROR_LIMIT_UPPER = RES_REF + RES_REF * ERROR_LIMIT  # + 10%
+# ERROR_LIMIT_LOWER = RES_REF - RES_REF * ERROR_LIMIT  # - 10%
+#
+# PLOT_UPPER = RES_REF + RES_REF * PLOT_MIN_MAX  # + 15%
+# PLOT_LOWER = RES_REF - RES_REF * PLOT_MIN_MAX  # - 15%
 
 form_class = uic.loadUiType('RMS.ui')[0]
 
@@ -106,11 +114,19 @@ class THREAD_RECEIVE_Data(QThread):
         if TEST_DATA:
             # self.test_data = pd.read_excel('./test_data.xlsx')
             # self.data_count = 1700
-            self.test_data = pd.read_excel('./20211216_170442.xlsx')
-            self.data_count = 580
+
+            # self.test_data = pd.read_excel('./data/20211216_170442.xlsx')
+            # self.data_count = 580
+            # self.data_count_end = 18700
+
+            self.test_data = pd.read_excel('./data/20211223_154032.xlsx')
+            self.data_count_start = 11000
+            self.data_count_end = 17400
+
+            self.data_count = self.data_count_start
         else:
             # self.ks_34461a = keysight_34461a(sys.argv)
-            self.ks_34461a = keysight_34461a(res_range, display)
+            self.ks_34461a = keysight_34461a(DMM_RES_RANGE, display, DMM_RESOLUTION)
 
         self.__suspend = False
         self.__exit = False
@@ -128,8 +144,8 @@ class THREAD_RECEIVE_Data(QThread):
             if TEST_DATA:
                 read = self.test_data[1][self.data_count]
                 self.data_count += 1
-                if self.data_count > 18700:  # 5000:
-                    self.data_count = 580  # 1700
+                if self.data_count > self.data_count_end:  # 5000:
+                    self.data_count = self.data_count_start # 1700
 
                 time.sleep(READ_DELAY)
             else:
@@ -176,14 +192,32 @@ class qt(QMainWindow, form_class):
         self.setupUi(self)
         # self.setWindowFlags(Qt.FramelessWindowHint)
 
-        # self.loadParam()
-        # self.lcdNum_line_num.valueChanged.connect(lambda: self.setParam(self.lcdNum_line_num))
+        self.res_ref = self.p_res_ref = self.line_num = 0
+        self.p_error_ref = self.p_error_limit = self.p_plot_min_max = 0
+        self.error_ref = self.error_limit = self.plot_min_max = 0
+        self.p_error_upper = self.p_error_lower = 0
+        self.p_error_limit_upper = self.p_error_limit_lower = 0
+        self.p_plot_upper = self.p_plot_lower = 0
+        self.error_upper = self.error_lower = 0
+        self.error_limit_upper = self.error_limit_lower = 0
+        self.plot_upper = self.plot_lower = 0
+
+        self.loadParam()
+        self.setParam()
+
+        # lcdNum click event connect to function
+        self.clickable(self.lcdNum_line_num).connect(lambda: self.input_lcdNum(self.lcdNum_line_num))
+        self.clickable(self.lcdNum_r_ref).connect(lambda: self.input_lcdNum(self.lcdNum_r_ref))         # k ohm
+        self.clickable(self.lcdNum_p_r_ref).connect(lambda: self.input_lcdNum(self.lcdNum_p_r_ref))
+        self.clickable(self.lcdNum_error_ref).connect(lambda: self.input_lcdNum(self.lcdNum_error_ref))
+        self.clickable(self.lcdNum_error_limit).connect(lambda: self.input_lcdNum(self.lcdNum_error_limit))
+        self.clickable(self.lcdNum_dmm_r_range).connect(lambda: self.input_lcdNum(self.lcdNum_dmm_r_range))
+        self.clickable(self.lcdNum_dmm_resolution).connect(lambda: self.input_lcdNum(self.lcdNum_dmm_resolution))
 
         self.btn_main.clicked.connect(lambda: self.main_button_function(self.btn_main))
         self.btn_parameter.clicked.connect(lambda: self.main_button_function(self.btn_parameter))
         self.btn_alarm.clicked.connect(lambda: self.main_button_function(self.btn_alarm))
         self.btn_alarm_list.clicked.connect(lambda: self.main_button_function(self.btn_alarm_list))
-        # self.btn_logon.clicked.connect(lambda: self.main_button_function(self.btn_logon))
 
         self.btn_start.clicked.connect(lambda: self.btn_34461a(self.btn_start))
         self.btn_stop.clicked.connect(lambda: self.btn_34461a(self.btn_stop))
@@ -192,8 +226,9 @@ class qt(QMainWindow, form_class):
         self.data = np.linspace(-np.pi, np.pi, x_size)
         self.y1_1 = np.zeros(len(self.data))
         self.y1_2 = np.zeros(len(self.data))
-        # self.y2 = np.sin(self.data)
-        self.y2 = np.zeros(mean_plot_x_size)
+        # self.y2_1 = np.sin(self.data)
+        self.y2_1 = np.zeros(mean_plot_x_size)
+        self.y2_2 = np.zeros(mean_plot_x_size)
 
         # self.plot(self.data, self.y1_1)
 
@@ -223,24 +258,25 @@ class qt(QMainWindow, form_class):
         self.curve1_2 = self.p6.plot(pen='r')
         self.p6.setGeometry(0, 0, x_size, 5)
 
-        self.p6.setYRange(PLOT_UPPER, PLOT_LOWER, padding=0)
+        self.p6.setYRange(self.plot_upper, self.plot_lower, padding=0)
 
-        self.drawLine(self.p6, ERROR_LOWER, 'y')
-        self.drawLine(self.p6, ERROR_UPPER, 'y')
-        self.drawLine(self.p6, ERROR_LIMIT_LOWER, 'r')
-        self.drawLine(self.p6, ERROR_LIMIT_UPPER, 'r')
+        self.drawLine(self.p6, self.error_lower, 'y')
+        self.drawLine(self.p6, self.error_upper, 'y')
+        self.drawLine(self.p6, self.error_limit_lower, 'r')
+        self.drawLine(self.p6, self.error_limit_upper, 'r')
 
         # self.graphWidget.nextRow()
 
         self.p7 = self.graphWidget.addPlot(title="Temp.")
-        self.curve2 = self.p7.plot(pen='y')
+        self.curve2_1 = self.p7.plot(pen='y')
+        self.curve2_2 = self.p7.plot(pen='r')
 
-        self.p7.setYRange(P_PLOT_UPPER, P_PLOT_LOWER, padding=0)
+        self.p7.setYRange(self.p_plot_upper, self.p_plot_lower, padding=0)
 
-        self.drawLine(self.p7, P_ERROR_LOWER, 'y')
-        self.drawLine(self.p7, P_ERROR_UPPER, 'y')
-        self.drawLine(self.p7, P_ERROR_LIMIT_LOWER, 'r')
-        self.drawLine(self.p7, P_ERROR_LIMIT_UPPER, 'r')
+        self.drawLine(self.p7, self.p_error_lower, 'y')
+        self.drawLine(self.p7, self.p_error_upper, 'y')
+        self.drawLine(self.p7, self.p_error_limit_lower, 'r')
+        self.drawLine(self.p7, self.p_error_limit_upper, 'r')
 
         self.timer = QtCore.QTimer()
         self.timer.setInterval(10)
@@ -267,7 +303,7 @@ class qt(QMainWindow, form_class):
         self.resist_data = []
         # self.writer = pd.ExcelWriter('./data.xlsx')
 
-        self.prev_data = ERROR_LIMIT_UPPER
+        self.prev_data = self.error_limit_upper
         self.data_list = []
         self.blank_count = 0
         self.line_data = []
@@ -279,19 +315,120 @@ class qt(QMainWindow, form_class):
 
         self.main_button_function(self.btn_main)
 
+    def setParam(self):
+        self.res_ref = RES_REF
+        self.p_res_ref = P_RES_REF
+        self.line_num = LINE_NUM
+
+        self.p_error_ref = P_ERROR_REF
+        self.p_error_limit = P_ERROR_LIMIT
+        self.p_plot_min_max = P_PLOT_MIN_MAX
+
+        self.error_ref = ERROR_REF
+        self.error_limit = ERROR_LIMIT
+        self.plot_min_max = PLOT_MIN_MAX
+
+        self.p_error_upper = self.p_res_ref + self.p_res_ref * self.p_error_ref  # + 5%
+        self.p_error_lower = self.p_res_ref - self.p_res_ref * self.p_error_ref  # - 5%
+
+        self.p_error_limit_upper = self.p_res_ref + self.p_res_ref * self.p_error_limit  # + 10%
+        self.p_error_limit_lower = self.p_res_ref - self.p_res_ref * self.p_error_limit  # - 10%
+
+        self.p_plot_upper = self.p_res_ref + self.p_res_ref * self.p_plot_min_max  # + 15%
+        self.p_plot_lower = self.p_res_ref - self.p_res_ref * self.p_plot_min_max  # - 15%
+
+        self.error_upper = self.res_ref + self.res_ref * self.error_ref  # + 5%
+        self.error_lower = self.res_ref - self.res_ref * self.error_ref  # - 5%
+
+        self.error_limit_upper = self.res_ref + self.res_ref * self.error_limit  # + 10%
+        self.error_limit_lower = self.res_ref - self.res_ref * self.error_limit  # - 10%
+
+        self.plot_upper = self.res_ref + self.res_ref * self.plot_min_max  # + 15%
+        self.plot_lower = self.res_ref - self.res_ref * self.plot_min_max  # - 15%
+
+    def loadParam(self):
+        global RES_REF, LINE_NUM, P_RES_REF, ERROR_REF, ERROR_LIMIT, P_ERROR_REF, P_ERROR_LIMIT, DMM_RES_RANGE, DMM_RESOLUTION
+        if not USE_GLOBAL_VARIABLE:
+            try:
+                with shelve.open('config') as f:
+                    LINE_NUM = int(f['line_num'])
+                    RES_REF = int(f['r_ref'])*1000
+                    P_RES_REF = int(f['p_r_ref'])
+                    ERROR_REF = int(f['error_ref'])/100     # 1st line
+                    ERROR_LIMIT = int(f['error_limit'])/100 # 2nd line
+
+                    P_ERROR_REF = ERROR_REF
+                    P_ERROR_LIMIT = ERROR_LIMIT
+
+                    DMM_RES_RANGE = int(f['dmm_r_range'])*1000
+                    DMM_RESOLUTION = int(f['dmm_resolution'])
+            except Exception as e:
+                print('exception: ', e)
+
+        self.lcdNum_line_num.display(LINE_NUM)
+        self.lcdNum_r_ref.display(RES_REF/1000)
+        self.lcdNum_p_r_ref.display(P_RES_REF)
+        self.lcdNum_error_ref.display(ERROR_REF*100)
+        self.lcdNum_error_limit.display(ERROR_LIMIT*100)
+        self.lcdNum_dmm_r_range.display(DMM_RES_RANGE/1000)
+        self.lcdNum_dmm_resolution.display(DMM_RESOLUTION)
+
+    def clickable(self, widget):
+        class Filter(QObject):
+            clicked = pyqtSignal()  # pyside2 사용자는 pyqtSignal() -> Signal()로 변경
+
+            def eventFilter(self, obj, event):
+
+                if obj == widget:
+                    if event.type() == QEvent.MouseButtonRelease:
+                        if obj.rect().contains(event.pos()):
+                            self.clicked.emit()
+                            # The developer can opt for .emit(obj) to get the object within the slot.
+                            return True
+                return False
+        filter = Filter(widget)
+        widget.installEventFilter(filter)
+        return filter.clicked
+
+    def save_var(self, key, value):
+        with shelve.open('config') as f:
+            f[key] = value
+
+    def input_lcdNum(self, lcdNum):
+        global LINE_NUM, ERROR_REF, ERROR_LIMIT, RES_REF, P_RES_REF, DMM_RES_RANGE, DMM_RESOLUTION
+        # item = ('16, '17', '18')
+        # text, ok = QInputDialog.getItem(self, 'input', 'select input', item, 0, False)
+        # text, ok = QInputDialog.getint(self, 'input', 'input number')
+        text, ok = QInputDialog.getInt(self, 'input', 'input number')
+        if ok:
+            if lcdNum == self.lcdNum_line_num:
+                LINE_NUM = text
+                self.save_var('line_num', text)
+            elif lcdNum == self.lcdNum_r_ref:
+                RES_REF = text
+                self.save_var('r_ref', text)
+            elif lcdNum == self.lcdNum_p_r_ref:
+                RES_REF = text
+                self.save_var('p_r_ref', text)
+            elif lcdNum == self.lcdNum_error_ref:
+                ERROR_REF = text
+                self.save_var('error_ref', text)
+            elif lcdNum == self.lcdNum_error_limit:
+                ERROR_LIMIT = text
+                self.save_var('error_limit', text)
+            elif lcdNum == self.lcdNum_dmm_r_range:
+                DMM_RES_RANGE = text
+                self.save_var('dmm_r_range', text)
+            elif lcdNum == self.lcdNum_dmm_resolution:
+                DMM_RESOLUTION = text
+                self.save_var('dmm_resolution', text)
+
+            lcdNum.display(text)
+
     def drawLine(self, plot_name, val, color):
         line = pg.InfiniteLine(angle=0, movable=True, pen=color)
         line.setValue(val)
         plot_name.addItem(line, ignoreBounds=True)
-
-    def loadParam(self):
-        global LINE_NUM
-        with shelve.open('config') as f:
-            try:
-                LINE_NUM = f['LINE_NUM']
-                self.lcdNum_line_num.display(LINE_NUM)
-            except Exception as e:
-                exc_type, exc_obj, exc_tb = sys.exc_info()
 
     def stParam(self, lcdNum):
         with shelve.open('config') as f:
@@ -305,20 +442,20 @@ class qt(QMainWindow, form_class):
 
     def update_func_1(self, msg):
         global ptr
-        if msg > ERROR_LIMIT_UPPER:
-            msg = ERROR_LIMIT_UPPER
-        elif msg < ERROR_LIMIT_LOWER:
-            msg = ERROR_LIMIT_LOWER
+        if msg > self.error_limit_upper:
+            msg = self.error_limit_upper
+        elif msg < self.error_limit_lower:
+            msg = self.error_limit_lower
 
         print('34661A: ', msg)
 
         # data filter
-        if msg != ERROR_LIMIT_UPPER:                # line data received
+        if msg != self.error_limit_upper:                # line data received
             self.blank_count = 0
             self.data_list.append(msg)
             self.prev_data = msg
             return
-        elif self.prev_data != ERROR_LIMIT_UPPER:   # blank area
+        elif self.prev_data != self.error_limit_upper:   # blank area
             mean_data = np.mean(self.data_list)
             self.data_list = []
             print('mean: ', mean_data)
@@ -326,7 +463,7 @@ class qt(QMainWindow, form_class):
             msg = mean_data
             mean_data = mean_data.round(2)
             self.line_data.append(mean_data)
-        elif (self.prev_data == ERROR_LIMIT_UPPER and msg == ERROR_LIMIT_UPPER) and not ENABLE_BLANK_LINE:
+        elif (self.prev_data == self.error_limit_upper and msg == self.error_limit_upper) and not ENABLE_BLANK_LINE:
             self.blank_count += 1
             # if self.blank_count > 20:
             if self.blank_count > BLANK_DATA_COUNT:
@@ -342,11 +479,18 @@ class qt(QMainWindow, form_class):
                     p_r_sum += (1 / self.line_data[idx])
 
                 p_r_sum = (1 / p_r_sum)
+                print('p res: ', p_r_sum)
                 self.lcdNum_1sheet_p_res.display(str(np.round(p_r_sum/1000, 1)))
-                two_s_p_res = (self.prev_1s_p_res + p_r_sum) /2
+                two_s_p_res = (self.prev_1s_p_res + p_r_sum) / 2
+                self.lcdNum_2sheets_p_res.display(str(np.round(two_s_p_res / 1000, 1)))
                 # self.line_data.append(p_r_sum.round(2))
+                self.line_data.append(0)
+                self.line_data.append(0)
                 self.line_data[LINE_NUM + 1] = p_r_sum.round(2)
                 self.line_data[LINE_NUM + 2] = two_s_p_res.round(2)
+                # self.line_data.append(p_r_sum.round(2))
+                # self.line_data.append(two_s_p_res.round(2))
+                self.prev_1s_p_res = p_r_sum
 
                 print(self.line_data, ' length: ', len(self.line_data))
                 self.tableWidget.removeRow(ROW_COUNT - 1)
@@ -360,7 +504,7 @@ class qt(QMainWindow, form_class):
                 self.line_data = []
                 self.blank_count = 0
 
-                self.mean_value_plot(p_r_sum)
+                self.mean_value_plot(p_r_sum, two_s_p_res)
 
         # self.y1_1 = np.roll(self.y1_1, -1)
 
@@ -372,40 +516,44 @@ class qt(QMainWindow, form_class):
             self.curve1_1.setData(self.y1_1)
             # self.y1_2 = np.zeros(x_size)
             self.y1_2 = np.zeros(x_size)
-            self.y1_2[:] = ERROR_LIMIT_UPPER
+            self.y1_2[:] = self.error_limit_upper
 
         self.y1_2[ptr] = msg
         ptr += 1
         self.curve1_2.setData(self.y1_2)
 
-        if msg != ERROR_LIMIT_UPPER:
+        if msg != self.error_limit_upper:
             msg = msg / 1000  # convert k ohm
             self.lcdNum_T_PV_CH1.display("{:.2f}".format(msg))
 
     def setTableWidgetData(self, line_data, tableWidget):
-        for idx in range(0, LINE_NUM + 2):
+        for idx in range(0, LINE_NUM + 3):
             tableWidget.setItem(0, idx, QTableWidgetItem(str(line_data[idx])))
 
         # self.tableWidget.setItem(0, LINE_NUM, QTableWidgetItem(str(line_data[-1])))
 
-    def mean_value_plot(self, mean_value):
+    def mean_value_plot(self, mean_value, two_sheets_p_res):
         # self.g_plotWidget.plot(hour, temperature)
         # curve = self.graphWidget_2.plot(pen='y')
-        self.y2 = np.roll(self.y2, -1)
-        self.y2[-1] = mean_value
-        self.curve2.setData(self.y2)
+        self.y2_1 = np.roll(self.y2_1, -1)
+        self.y2_1[-1] = mean_value
+        self.curve2_1.setData(self.y2_1)
+
+        self.y2_2 = np.roll(self.y2_2, -1)
+        self.y2_2[-1] = two_sheets_p_res
+        self.curve2_2.setData(self.y2_2)
 
     def sine_plot(self):
         # self.g_plotWidget.plot(hour, temperature)
         # curve = self.graphWidget_2.plot(pen='y')
-        self.y2 = np.roll(self.y2, -1)
-        self.y2[-1] = np.sin(self.data[self.counter % x_size])
-        self.curve2.setData(self.y2)
+        self.y2_1 = np.roll(self.y2_1, -1)
+        self.y2_1[-1] = np.sin(self.data[self.counter % x_size])
+        self.curve2_1.setData(self.y2_1)
 
-        mean_value = 10 + np.round(self.y2[-1], 1) / 10
+        mean_value = 10 + np.round(self.y2_1[-1], 1) / 10
         if self.counter % 50 == 0:
             self.lcdNum_T_SV_CH1.display("{:.1f}".format(mean_value))
-        # print('y2: ', mean_value)
+        # print('y2_1: ', mean_value)
 
         self.counter += 1
 
@@ -414,12 +562,12 @@ class qt(QMainWindow, form_class):
         line = us.readline().decode('utf-8')
         # print(line)
 
-        self.y2 = np.roll(self.y2, -1)
+        self.y2_1 = np.roll(self.y2_1, -1)
 
         temp_data = line.split(' ')[1].split(',')[0]
         temp_data = float(temp_data)
-        self.y2[-1] = temp_data
-        self.curve_2.setData(self.y2)
+        self.y2_1[-1] = temp_data
+        self.curve_2.setData(self.y2_1)
 
         self.lcdNum_T_SV_CH1.display("{:.1f}".format(temp_data))
 

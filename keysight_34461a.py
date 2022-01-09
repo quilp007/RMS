@@ -4,12 +4,12 @@ from datetime import datetime
 
 
 class keysight_34461a:
-    def __init__(self, res_range=100000, display=False):
+    def __init__(self, res_range=100000, display=False, resolution=2):
         # _state = False
         # _range = 10000
         _state = display
         _range = res_range
-        _resolution = 0.2
+        _resolution = resolution
 
         # VISA_ADDRESS = 'TCPIP::A-34461A-00000.local::inst0::INSTR'
         _VISA_ADDRESS = 'USB0::0x2A8D::0x1401::MY60020026::0::INSTR'
