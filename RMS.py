@@ -26,6 +26,8 @@ import serial
 ROW_COUNT = 30  # limit: 30
 ROW_COUNT_2 = 3  # limit: 3
 
+V_input = 12.009
+
 # graph x size
 mean_plot_x_size = 100  # graph's x size
 x_size = 200  # graph's x size
@@ -38,8 +40,10 @@ LINE_NUM = 16  # thermal film line
 
 # RES_REF = 33000
 # RES_REF = 5000
-RES_REF = 14000
-# P_RES_REF = 310
+# RES_REF = 14000
+# P_RES_REF = 875
+
+RES_REF = 33000
 P_RES_REF = 875
 
 P_ERROR_REF = 0.05  # 5%
@@ -63,11 +67,11 @@ ENABLE_BLANK_LINE = False
 BLANK_DATA_COUNT = 20
 # ------------------------------------------------------------------------------
 
-TEST_DATA = True  # if read data from excel
-# TEST_DATA = False # if read data from 34461a
+# TEST_DATA = True  # if read data from excel
+TEST_DATA = False # if read data from 34461a
 
-if not TEST_DATA:
-    us = serial.Serial(COM_PORT, 19200)
+# if not TEST_DATA:
+#     us = serial.Serial(COM_PORT, 19200)
 
 # AT Command for USB Temperature sensor
 ATCZ = b'ATCZ\r\n'
@@ -151,7 +155,7 @@ class THREAD_RECEIVE_Data(QThread):
                 time.sleep(READ_DELAY)
             else:
                 read = self.ks_34461a.read()
-
+                read = V_input / read
             # read = RES_REF
             print(_time, ': ', read)
 
@@ -482,7 +486,7 @@ class qt(QMainWindow, form_class):
 
             self.tableWidget_3.removeRow(5 - 1)
             self.tableWidget_3.insertRow(0)
-            self.setTableWidgetData(self.data_list, self.tableWidget_3)
+            self.setTableWidgetData(self.data_list[-1:], self.tableWidget_3)
             return
 
         elif self.prev_data != self.error_limit_upper:   # blank area

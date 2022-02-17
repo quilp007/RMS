@@ -11,13 +11,16 @@ class keysight_34461a:
         _range = res_range
         _resolution = resolution
 
+        range2 = 0.001
+        resolution2 = 0.2
+
         # VISA_ADDRESS = 'TCPIP::A-34461A-00000.local::inst0::INSTR'
         _VISA_ADDRESS = 'USB0::0x2A8D::0x1401::MY60020026::0::INSTR'
 
         self.rm = visa.ResourceManager()
         self.v34461A = self.rm.open_resource(_VISA_ADDRESS)
-        self.v34461A.write(':CONFigure:RESistance %G,%G' % (_range, _resolution))
-        # self.v34461A.write(':CONFigure:CURRent %G,%G' % (_range, _resolution))
+        # self.v34461A.write(':CONFigure:RESistance %G,%G' % (_range, _resolution))
+        self.v34461A.write(':CONFigure:SCALar:CURRent:DC %G,%G' % (range2, resolution2))
         self.v34461A.write(':DISPlay:STATe %d' % (_state))
 
         self.time_format = '%Y%m%d_%H%M%S'
