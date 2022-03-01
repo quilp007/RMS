@@ -26,6 +26,8 @@ import serial
 ROW_COUNT = 30  # limit: 30
 ROW_COUNT_2 = 3  # limit: 3
 
+V_input = 12.009
+
 # graph x size
 mean_plot_x_size = 100  # graph's x size
 x_size = 200  # graph's x size
@@ -39,7 +41,9 @@ LINE_NUM = 16  # thermal film line
 # RES_REF = 33000
 # RES_REF = 5000
 RES_REF = 14000
-# P_RES_REF = 310
+# P_RES_REF = 875
+
+# RES_REF = 33000
 P_RES_REF = 875
 
 P_ERROR_REF = 0.05  # 5%
@@ -62,12 +66,14 @@ READ_DELAY = 0.005
 ENABLE_BLANK_LINE = False
 BLANK_DATA_COUNT = 20
 # ------------------------------------------------------------------------------
+# CURRENT_MODE = True
+CURRENT_MODE = False
 
 TEST_DATA = True  # if read data from excel
 # TEST_DATA = False # if read data from 34461a
 
-if not TEST_DATA:
-    us = serial.Serial(COM_PORT, 19200)
+# if not TEST_DATA:
+#     us = serial.Serial(COM_PORT, 19200)
 
 # AT Command for USB Temperature sensor
 ATCZ = b'ATCZ\r\n'
@@ -151,7 +157,8 @@ class THREAD_RECEIVE_Data(QThread):
                 time.sleep(READ_DELAY)
             else:
                 read = self.ks_34461a.read()
-
+                if CURRENT_MODE:
+                    read = V_input / read
             # read = RES_REF
             print(_time, ': ', read)
 
@@ -204,6 +211,7 @@ class qt(QMainWindow, form_class):
         self.plot_upper = self.plot_lower = 0
 
         self.loadParam()
+        print('RES_REF: ', RES_REF)
         self.setParam()
 
         # lcdNum click event connect to function
@@ -381,7 +389,7 @@ class qt(QMainWindow, form_class):
         global RES_REF, LINE_NUM, P_RES_REF, ERROR_REF, ERROR_LIMIT, P_ERROR_REF, P_ERROR_LIMIT, DMM_RES_RANGE, DMM_RESOLUTION
         if not USE_GLOBAL_VARIABLE:
             try:
-                with shelve.open('config') as f:
+                with shelve.open('config.db') as f:
                     LINE_NUM = int(f['line_num'])
                     RES_REF = int(f['r_ref'])*1000
                     P_RES_REF = int(f['p_r_ref'])
@@ -422,7 +430,7 @@ class qt(QMainWindow, form_class):
         return filter.clicked
 
     def save_var(self, key, value):
-        with shelve.open('config') as f:
+        with shelve.open('config.db') as f:
             f[key] = value
 
     def mode_change(self):
@@ -450,7 +458,7 @@ class qt(QMainWindow, form_class):
                 RES_REF = text
                 self.save_var('r_ref', text)
             elif lcdNum == self.lcdNum_p_r_ref:
-                RES_REF = text
+                P_RES_REF = text
                 self.save_var('p_r_ref', text)
             elif lcdNum == self.lcdNum_error_ref:
                 ERROR_REF = text
@@ -473,7 +481,7 @@ class qt(QMainWindow, form_class):
         plot_name.addItem(line, ignoreBounds=True)
 
     def stParam(self, lcdNum):
-        with shelve.open('config') as f:
+        with shelve.open('config.db') as f:
             if lcdNum == self.lcdNum_line_num:
                 f['LINE_NUM'] = self.lcdNum_line_num.value()
 
