@@ -220,6 +220,7 @@ class qt(QMainWindow, form_class):
         self.btn_parameter.clicked.connect(lambda: self.main_button_function(self.btn_parameter))
         self.btn_alarm.clicked.connect(lambda: self.main_button_function(self.btn_alarm))
         self.btn_alarm_list.clicked.connect(lambda: self.main_button_function(self.btn_alarm_list))
+        self.btn_debug.clicked.connect(lambda: self.main_button_function(self.btn_debug))
 
         self.btn_start.clicked.connect(lambda: self.btn_34461a(self.btn_start))
         self.btn_stop.clicked.connect(lambda: self.btn_34461a(self.btn_stop))
@@ -231,6 +232,8 @@ class qt(QMainWindow, form_class):
         # self.y2_1 = np.sin(self.data)
         self.y2_1 = np.zeros(mean_plot_x_size)
         self.y2_2 = np.zeros(mean_plot_x_size)
+
+        self.y3_1 = np.zeros(700)
 
         # self.plot(self.data, self.y1_1)
 
@@ -289,6 +292,20 @@ class qt(QMainWindow, form_class):
         self.drawLine(self.p7, self.p_error_upper, 'y')
         self.drawLine(self.p7, self.p_error_limit_lower, 'r')
         self.drawLine(self.p7, self.p_error_limit_upper, 'r')
+
+        # DEBUG GRAPH
+        self.p8 = self.graphWidget_3.addPlot(title="DEBUG")
+        self.curve3_1 = self.p8.plot(pen='g')
+        self.curve3_2 = self.p8.plot(pen='r')
+        self.p6.setGeometry(0, 0, x_size, 5)
+
+        self.p8.setYRange(self.plot_upper, self.plot_lower, padding=0)
+
+        self.drawLine(self.p8, self.error_lower, 'y')
+        self.drawLine(self.p8, self.error_upper, 'y')
+        self.drawLine(self.p8, self.error_limit_lower, 'r')
+        self.drawLine(self.p8, self.error_limit_upper, 'r')
+
 
         self.timer = QtCore.QTimer()
         self.timer.setInterval(10)
@@ -474,6 +491,10 @@ class qt(QMainWindow, form_class):
 
         print('34661A: ', msg)
 
+        self.y3_1 = np.roll(self.y3_1, -1)
+        self.y3_1[-1] = msg
+        self.curve3_1.setData(self.y3_1)
+
         # data filter
         if msg != self.error_limit_upper:                # line data received
             self.blank_count = 0
@@ -633,6 +654,7 @@ class qt(QMainWindow, form_class):
         self.btn_parameter.setStyleSheet("background-color: #dedede; border: 0px")
         self.btn_alarm.setStyleSheet("background-color: #dedede; border: 0px")
         self.btn_alarm_list.setStyleSheet("background-color: #dedede; border: 0px")
+        self.btn_debug.setStyleSheet("background-color: #dedede; border: 0px")
 
         if button == self.btn_main:
             self.stackedWidget.setCurrentWidget(self.sw_MAIN)
@@ -646,6 +668,9 @@ class qt(QMainWindow, form_class):
         elif button == self.btn_alarm_list:
             self.stackedWidget.setCurrentWidget(self.sw_ALARM_LIST)
             self.btn_alarm_list.setStyleSheet("background-color: lime; border: 0px")
+        elif button == self.btn_debug:
+            self.stackedWidget.setCurrentWidget(self.sw_DEBUG)
+            self.btn_debug.setStyleSheet("background-color: lime; border: 0px")
         # elif button == self.btn_logon:
         #     if gLogon == True:
         #         # self.Logoff_func()
