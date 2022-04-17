@@ -126,7 +126,8 @@ class THREAD_RECEIVE_Data(QThread):
             # self.data_count_end = 18700
 
             self.test_data = pd.read_excel('./data/20211223_154032.xlsx')
-            self.data_count_start = 11000
+            # self.data_count_start = 11000
+            self.data_count_start = 1
             # self.data_count_start = 3400
             self.data_count_end = 17400
 
@@ -307,7 +308,8 @@ class qt(QMainWindow, form_class):
         self.curve3_2 = self.p8.plot(pen='r')
         self.p6.setGeometry(0, 0, x_size, 5)
 
-        self.p8.setYRange(self.plot_upper, self.plot_lower, padding=0)
+        # self.p8.setYRange(self.plot_upper, self.plot_lower, padding=0)
+        self.p8.setYRange(100000, 1000, padding=0)
 
         self.drawLine(self.p8, self.error_lower, 'y')
         self.drawLine(self.p8, self.error_upper, 'y')
@@ -492,6 +494,16 @@ class qt(QMainWindow, form_class):
 
     def update_func_1(self, msg):
         global ptr
+
+        msg_debug = msg
+        if msg_debug > 100000:
+            msg_debug = 100000
+        elif msg_debug < 1000:
+            msg_debug = 1000
+        self.y3_1 = np.roll(self.y3_1, -1)
+        self.y3_1[-1] = msg_debug
+        self.curve3_1.setData(self.y3_1)
+
         if msg > self.error_limit_upper:
             msg = self.error_limit_upper
         elif msg < self.error_limit_lower:
@@ -499,9 +511,9 @@ class qt(QMainWindow, form_class):
 
         print('34661A: ', msg)
 
-        self.y3_1 = np.roll(self.y3_1, -1)
-        self.y3_1[-1] = msg
-        self.curve3_1.setData(self.y3_1)
+        # self.y3_1 = np.roll(self.y3_1, -1)
+        # self.y3_1[-1] = msg
+        # self.curve3_1.setData(self.y3_1)
 
         # data filter
         if msg != self.error_limit_upper:                # line data received
