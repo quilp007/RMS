@@ -26,7 +26,8 @@ import serial
 ROW_COUNT = 30  # limit: 30
 ROW_COUNT_2 = 3  # limit: 3
 
-V_input = 12.009
+# V_input = 12.009
+V_input = 35.98
 
 # graph x size
 mean_plot_x_size = 100  # graph's x size
@@ -42,8 +43,19 @@ LINE_NUM = 16  # thermal film line
 # RES_REF = 5000
 RES_REF = 14000
 # P_RES_REF = 875
-
 # RES_REF = 33000
+
+P_RES_REF = 13000
+P_ERROR_REF = 0.20  # 5%
+P_ERROR_LIMIT = 0.40  # 12.5%
+P_PLOT_MIN_MAX = 0.50  # 15%
+
+ERROR_REF = 0.10  # 5%
+# ERROR_LIMIT = 0.1     # 10%
+ERROR_LIMIT = 0.20  # 12.5%
+PLOT_MIN_MAX = 0.25  # 15%
+
+"""
 P_RES_REF = 875
 
 P_ERROR_REF = 0.05  # 5%
@@ -54,6 +66,7 @@ ERROR_REF = 0.05  # 5%
 # ERROR_LIMIT = 0.1     # 10%
 ERROR_LIMIT = 0.125  # 12.5%
 PLOT_MIN_MAX = 0.15  # 15%
+"""
 
 # config for keysight 34461a
 display = True  # 34461a display On(True)/Off(False)
@@ -65,10 +78,8 @@ COM_PORT = 'com4'
 READ_DELAY = 0.005
 ENABLE_BLANK_LINE = False
 BLANK_DATA_COUNT = 20
-# ------------------------------------------------------------------------------
-# CURRENT_MODE = True
-CURRENT_MODE = False
 
+# ------------------------------------------------------------------------------
 TEST_DATA = True  # if read data from excel
 # TEST_DATA = False # if read data from 34461a
 
@@ -158,8 +169,6 @@ class THREAD_RECEIVE_Data(QThread):
                 time.sleep(READ_DELAY)
             else:
                 read = self.ks_34461a.read()
-                if CURRENT_MODE:
-                    read = V_input / read
             # read = RES_REF
             print(_time, ': ', read)
 
